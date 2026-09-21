@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: manyue
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: ./render-start.sh
+    envVars:
+      - key: ADMIN_PASSWORD
+        value: bBtz6169
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+    disk:
+      name: manyue-data
+      mountPath: /opt/data
+      sizeGB: 1

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="theme-color" content="#0d0d0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <title>漫画详情 - 漫阅</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <div class="navbar-brand" onclick="location.href='/'">
+      <span class="logo-icon">📖</span>
+      <span>漫阅</span>
+    </div>
+    <div class="navbar-right">
+      <a href="/" class="navbar-link">首页</a>
+      <a href="/profile" class="navbar-link">我的</a>
+      <a href="/admin" class="navbar-link">管理</a>
+    </div>
+  </nav>
+
+  <!-- 主内容 -->
+  <div class="container">
+    <div id="comicDetail">
+      <!-- 骨架屏 -->
+      <div class="comic-detail-header">
+        <div class="comic-detail-cover">
+          <div class="placeholder">📖</div>
+        </div>
+        <div class="comic-detail-info" style="padding-top:8px;">
+          <div class="skeleton-line" style="width:50%;height:24px;margin:0 0 16px;"></div>
+          <div class="skeleton-line" style="width:100%;margin:0 0 8px;"></div>
+          <div class="skeleton-line" style="width:70%;margin:0 0 8px;"></div>
+          <div class="skeleton-line" style="width:30%;height:20px;margin:0 0 16px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <span class="logo-icon">📖</span>
+      <span>漫阅</span>
+    </div>
+    <p>个人漫画浏览平台 · 管理员上传，访客浏览</p>
+  </footer>
+
+  <script src="/js/cloud-config.js"></script>
+  <script>
+    const comicId = new URLSearchParams(location.search).get('id')
+      || location.pathname.split('/').pop();
+
+    let comicData = null;
+    let chapterReversed = false;
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatTime(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    async function loadComicDetail() {
+      try {
+        const res = await fetch(`/api/comics/${comicId}`);
+        if (!res.ok) throw new Error('漫画不存在');
+        comicData = await res.json();
+        document.title = `${comicData.title} - 漫阅`;
+        renderDetail();
+      } catch (err) {
+        document.getElementById('comicDetail').innerHTML = `
+          <div class="empty-state">
+            <div class="icon">⚠️</div>
+            <h3>加载失败</h3>
+            <p>${escapeHtml(err.message)}</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderDetail() {
+      const container = document.getElementById('comicDetail');
+      const chapters = chapterReversed
+        ? [...comicData.chapters].reverse()
+        : comicData.chapters;
+
+      container.innerHTML = `
+        <!-- 面包屑 -->
+        <div class="breadcrumb">
+          <a href="/">首页</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">${escapeHtml(comicData.title)}</span>
+        </div>
+
+        <!-- 漫画信息 -->
+        <div class="comic-detail-header">
+          <div class="comic-detail-cover">
+            ${comicData.cover
+              ? `<img src="${comicData.cover}" alt="${escapeHtml(comicData.title)}">`
+              : `<div class="placeholder">📕</div>`}
+          </div>
+          <div class="comic-detail-info">
+            <h1 class="comic-detail-title">${escapeHtml(comicData.title)}</h1>
+            ${comicData.tags && comicData.tags.length > 0
+              ? `<div class="comic-detail-tags">${comicData.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>`
+              : ''}
+            <p class="comic-detail-desc">${comicData.description ? escapeHtml(comicData.description) : '暂无简介'}</p>
+            <div class="comic-card-meta" style="margin-bottom:16px;">
+              <span>共 ${comicData.chapters.length} 章</span>
+              <span>·</span>
+              <span>更新于 ${formatTime(comicData.updatedAt)}</span>
+            </div>
+            ${comicData.chapters.length > 0
+              ? `<button class="btn btn-primary" onclick="startReading()">开始阅读</button>`
+              : '<span style="color:var(--text-muted);font-size:14px;">暂无章节</span>'}
+            <button class="btn btn-secondary" id="favoriteBtn" onclick="toggleFavorite()">收藏</button>
+          </div>
+        </div>
+
+        <!-- 章节列表 -->
+        <div class="page-header">
+          <h2 class="page-title" style="font-size:18px;">章节列表</h2>
+          ${comicData.chapters.length > 0
+            ? `<button class="sort-toggle ${chapterReversed ? 'active' : ''}" onclick="toggleChapterOrder()">
+                ${chapterReversed ? '↓ 倒序' : '↑ 正序'}
+              </button>`
+            : ''}
+        </div>
+
+        ${comicData.chapters.length > 0
+          ? `<div class="chapter-list">
+              ${chapters.map((ch, idx) => {
+                const realIdx = chapterReversed
+                  ? comicData.chapters.length - 1 - idx
+                  : idx;
+                return `
+                  <div class="chapter-item" onclick="readChapter(${realIdx})">
+                    <div class="chapter-item-left">
+                      <span class="chapter-item-title">${escapeHtml(ch.title)}</span>
+                      <span class="chapter-item-pages">${ch.pageCount} 页${ch.readMode === 'scroll' ? ' · 📜滚动' : ''}</span>
+                    </div>
+                    <span class="chapter-item-action">阅读 →</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>`
+          : `<div class="empty-state">
+              <div class="icon">📄</div>
+              <h3>暂无章节</h3>
+              <p>管理员可以在后台上传章节</p>
+            </div>`}
+      `;
+    }
+
+    function toggleChapterOrder() {
+      chapterReversed = !chapterReversed;
+      renderDetail();
+    }
+
+    function startReading() {
+      const chapters = chapterReversed
+        ? [...comicData.chapters].reverse()
+        : comicData.chapters;
+      if (chapters.length > 0) {
+        location.href = `/reader/${comicData.id}/${chapters[0].id}`;
+      }
+    }
+
+    loadComicDetail().then(() => {
+      if (typeof checkFavorite === 'function') checkFavorite();
+    });
+  </script>
+  <script>
+    // Device ID and reading history tracking
+    function getDeviceId() {
+      let id = localStorage.getItem('device_id');
+      if (!id) {
+        id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('device_id', id);
+      }
+      return id;
+    }
+
+    function recordReadingHistory(comicId, chapterId, comicTitle, chapterTitle, page, totalPages) {
+      try {
+        fetch('/api/user/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Device-Id': getDeviceId() },
+          body: JSON.stringify({ comicId, chapterId, comicTitle, chapterTitle, page, totalPages })
+        }).catch(() => {});
+      } catch(e) {}
+    }
+
+    // Favorite functionality
+    async function checkFavorite() {
+      try {
+        const res = await fetch(`/api/user/favorites?comicId=${comicId}`, {
+          headers: { 'X-Device-Id': getDeviceId() }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          updateFavoriteButton(data.favorited);
+        }
+      } catch(e) {}
+    }
+
+    async function toggleFavorite() {
+      try {
+        const btn = document.getElementById('favoriteBtn');
+        if (!btn) return;
+        const isFavorited = btn.classList.contains('favorited');
+        const method = isFavorited ? 'DELETE' : 'POST';
+        const res = await fetch('/api/user/favorites', {
+          method: method,
+          headers: { 'Content-Type': 'application/json', 'X-Device-Id': getDeviceId() },
+          body: JSON.stringify({ comicId })
+        });
+        if (res.ok) {
+          updateFavoriteButton(!isFavorited);
+        }
+      } catch(e) {}
+    }
+
+    function updateFavoriteButton(favorited) {
+      const btn = document.getElementById('favoriteBtn');
+      if (btn) {
+        btn.classList.toggle('favorited', favorited);
+        btn.textContent = favorited ? '已收藏' : '收藏';
+      }
+    }
+
+    // Read chapter with history recording
+    function readChapter(idx) {
+      if (!comicData || !comicData.chapters[idx]) return;
+      const ch = comicData.chapters[idx];
+      recordReadingHistory(comicData.id, ch.id, comicData.title, ch.title, 1, ch.pageCount);
+      location.href = `/reader/${comicData.id}/${ch.id}`;
+    }
+  </script>
+</body>
+</html>

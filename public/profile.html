@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="theme-color" content="#0d0d0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="漫阅">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <title>个人中心 - 漫阅</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ============ 个人中心页专用样式 ============ */
+
+    .profile-hero {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 28px 24px;
+      background: linear-gradient(135deg, rgba(91, 141, 239, 0.12), rgba(138, 109, 255, 0.08));
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      margin-bottom: 32px;
+    }
+
+    .profile-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #8a6dff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(91, 141, 239, 0.3);
+    }
+
+    .profile-hero-info h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .profile-hero-info p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* 区块标题 */
+    .profile-section {
+      margin-bottom: 48px;
+    }
+
+    .profile-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .profile-section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .profile-section-title .section-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius);
+      background: var(--accent-light);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .profile-section-count {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      margin-left: auto;
+      margin-right: 12px;
+    }
+
+    /* 统计卡片 */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px 20px;
+      text-align: center;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), #8a6dff);
+      opacity: 0.7;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent);
+      box-shadow: var(--shadow);
+    }
+
+    .stat-card .stat-card-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+      line-height: 1;
+    }
+
+    .stat-card .stat-card-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
+
+    .stat-card .stat-card-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* 阅读历史卡片 */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .history-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      transition: var(--transition);
+    }
+
+    .history-card:hover {
+      border-color: var(--accent);
+      background: var(--bg-hover);
+    }
+
+    .history-card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius);
+      background: var(--accent-light);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .history-card-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .history-card-title {
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .history-card-chapter {
+      font-size: 13px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 10px;
+    }
+
+    .history-progress {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .history-progress-bar {
+      flex: 1;
+      height: 6px;
+      background: var(--bg-primary);
+      border-radius: 3px;
+      overflow: hidden;
+      min-width: 80px;
+    }
+
+    .history-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #8a6dff);
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    .history-progress-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .history-card-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .history-card-time {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .history-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .history-card-actions .btn-continue {
+      white-space: nowrap;
+    }
+
+    .history-delete-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .history-delete-btn:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: rgba(224, 98, 94, 0.1);
+    }
+
+    /* 收藏卡片覆盖删除按钮 */
+    .favorite-remove-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.65);
+      border: none;
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .comic-card:hover .favorite-remove-btn {
+      opacity: 1;
+    }
+
+    .favorite-remove-btn:hover {
+      background: var(--danger);
+    }
+
+    .favorite-added-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* 空状态 - 复用 .empty-state，附加按钮 */
+    .empty-state .empty-action {
+      margin-top: 16px;
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .history-card {
+        flex-wrap: wrap;
+      }
+
+      .history-card-meta {
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .history-card-actions {
+        margin-left: auto;
+      }
+
+      .profile-hero {
+        padding: 20px 16px;
+      }
+
+      .profile-section-title {
+        font-size: 16px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid {
+        gap: 10px;
+      }
+
+      .stat-card {
+        padding: 16px 12px;
+      }
+
+      .stat-card .stat-card-value {
+        font-size: 22px;
+      }
+
+      .history-card-icon {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <div class="navbar-brand" onclick="location.href='/'">
+      <span class="logo-icon">📖</span>
+      <span>漫阅</span>
+    </div>
+    <div class="navbar-right">
+      <a href="/" class="navbar-link">首页</a>
+      <a href="/profile" class="navbar-link active">我的</a>
+      <a href="/admin" class="navbar-link">管理</a>
+      <a href="/settings" class="navbar-link">设置</a>
+    </div>
+  </nav>
+
+  <!-- 主内容 -->
+  <div class="container">
+    <!-- 个人信息头部 -->
+    <div class="profile-hero">
+      <div class="profile-avatar">👤</div>
+      <div class="profile-hero-info">
+        <h1>个人中心</h1>
+        <p id="heroSubtitle">记录你的阅读足迹与收藏</p>
+      </div>
+    </div>
+
+    <!-- 统计概览 -->
+    <section class="profile-section">
+      <div class="profile-section-header">
+        <div class="profile-section-title">
+          <span class="section-icon">📊</span>
+          <span>阅读统计</span>
+        </div>
+      </div>
+      <div id="statsGrid" class="stats-grid">
+        <!-- 骨架屏 -->
+        <div class="stat-card">
+          <div class="stat-card-icon">📚</div>
+          <div class="stat-card-value" style="color:var(--text-muted);">—</div>
+          <div class="stat-card-label">阅读漫画</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">📑</div>
+          <div class="stat-card-value" style="color:var(--text-muted);">—</div>
+          <div class="stat-card-label">阅读章节</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">📄</div>
+          <div class="stat-card-value" style="color:var(--text-muted);">—</div>
+          <div class="stat-card-label">阅读页数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">🔥</div>
+          <div class="stat-card-value" style="color:var(--text-muted);">—</div>
+          <div class="stat-card-label">连续天数</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 阅读历史 -->
+    <section class="profile-section">
+      <div class="profile-section-header">
+        <div class="profile-section-title">
+          <span class="section-icon">⏱️</span>
+          <span>阅读历史</span>
+        </div>
+        <span id="historyCount" class="profile-section-count" style="display:none;"></span>
+        <button id="clearAllHistoryBtn" class="btn btn-sm btn-danger" style="display:none;" onclick="clearAllHistory()">清空历史</button>
+      </div>
+      <div id="historyList" class="history-list">
+        <div class="loading"><div class="spinner"></div><p>加载中...</p></div>
+      </div>
+    </section>
+
+    <!-- 我的收藏 -->
+    <section class="profile-section">
+      <div class="profile-section-header">
+        <div class="profile-section-title">
+          <span class="section-icon">⭐</span>
+          <span>我的收藏</span>
+        </div>
+        <span id="favoritesCount" class="profile-section-count" style="display:none;"></span>
+      </div>
+      <div id="favoritesGrid" class="comic-grid">
+        <div class="skeleton-card">
+          <div class="skeleton-cover"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-cover"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-cover"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <span class="logo-icon">📖</span>
+      <span>漫阅</span>
+    </div>
+    <p>个人漫画浏览平台 · 管理员上传，访客浏览</p>
+    <div class="footer-stats" id="footerStats"></div>
+  </footer>
+
+  <script src="/js/cloud-config.js"></script>
+  <script>
+    // ============ 设备 ID ============
+    function getDeviceId() {
+      let id = localStorage.getItem('device_id');
+      if (!id) {
+        id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('device_id', id);
+      }
+      return id;
+    }
+
+    // ============ 工具函数 ============
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text == null ? '' : String(text);
+      return div.innerHTML;
+    }
+
+    // 相对时间格式化（适合"上次阅读"）
+    function formatTime(ts) {
+      if (!ts) return '';
+      const now = Date.now();
+      const diff = now - new Date(ts).getTime();
+      if (isNaN(diff)) return '';
+
+      const minute = 60 * 1000;
+      const hour = 60 * minute;
+      const day = 24 * hour;
+
+      if (diff < minute) return '刚刚';
+      if (diff < hour) return Math.floor(diff / minute) + ' 分钟前';
+      if (diff < day) return Math.floor(diff / hour) + ' 小时前';
+      if (diff < 7 * day) return Math.floor(diff / day) + ' 天前';
+
+      // 超过 7 天显示具体日期时间
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    // 日期格式化（用于收藏添加时间）
+    function formatDate(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    // 统一 fetch 封装（自动附带 X-Device-Id）
+    async function apiFetch(url, options = {}) {
+      const headers = Object.assign({}, options.headers || {}, {
+        'X-Device-Id': getDeviceId()
+      });
+      if (options.body && !(options.body instanceof FormData)) {
+        headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+      }
+      return fetch(url, Object.assign({}, options, { headers }));
+    }
+
+    // Toast 通知
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.transition = 'all 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ============ 加载统计 ============
+    async function loadStats() {
+      try {
+        const res = await apiFetch('/api/user/stats');
+        if (!res.ok) throw new Error('加载统计失败');
+        const data = await res.json();
+
+        const grid = document.getElementById('statsGrid');
+        const cards = [
+          { icon: '📚', value: data.totalComics ?? 0, label: '阅读漫画' },
+          { icon: '📑', value: data.totalChapters ?? 0, label: '阅读章节' },
+          { icon: '📄', value: data.totalPages ?? 0, label: '阅读页数' },
+          { icon: '🔥', value: data.readingStreakDays ?? 0, label: '连续天数' }
+        ];
+
+        grid.innerHTML = cards.map(c => `
+          <div class="stat-card">
+            <div class="stat-card-icon">${c.icon}</div>
+            <div class="stat-card-value">${escapeHtml(c.value)}</div>
+            <div class="stat-card-label">${escapeHtml(c.label)}</div>
+          </div>
+        `).join('');
+
+        // 更新页脚统计
+        document.getElementById('footerStats').textContent =
+          `已读 ${data.totalComics ?? 0} 部漫画 · ${data.totalChapters ?? 0} 个章节`;
+      } catch (err) {
+        document.getElementById('statsGrid').innerHTML = `
+          <div class="stat-card" style="grid-column: 1 / -1;">
+            <div class="stat-card-icon">⚠️</div>
+            <div class="stat-card-label">${escapeHtml(err.message)}</div>
+          </div>
+        `;
+      }
+    }
+
+    // ============ 阅读历史 ============
+    let historyList = [];
+
+    async function loadHistory() {
+      const listEl = document.getElementById('historyList');
+      try {
+        const res = await apiFetch('/api/user/history');
+        if (!res.ok) throw new Error('加载历史失败');
+        historyList = await res.json();
+        renderHistory();
+      } catch (err) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">⚠️</div>
+            <h3>加载失败</h3>
+            <p>${escapeHtml(err.message)}</p>
+            <div class="empty-action">
+              <button class="btn btn-sm" onclick="loadHistory()">重试</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderHistory() {
+      const listEl = document.getElementById('historyList');
+      const countEl = document.getElementById('historyCount');
+      const clearBtn = document.getElementById('clearAllHistoryBtn');
+
+      if (historyList.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📖</div>
+            <h3>还没有阅读记录</h3>
+            <p>去首页找一本喜欢的漫画开始阅读吧</p>
+            <div class="empty-action">
+              <a href="/" class="btn btn-primary btn-sm">浏览漫画</a>
+            </div>
+          </div>
+        `;
+        countEl.style.display = 'none';
+        clearBtn.style.display = 'none';
+        return;
+      }
+
+      countEl.textContent = `共 ${historyList.length} 条`;
+      countEl.style.display = 'inline';
+      clearBtn.style.display = 'inline-flex';
+
+      // 按阅读时间倒序
+      const sorted = [...historyList].sort((a, b) => new Date(b.readAt) - new Date(a.readAt));
+
+      listEl.innerHTML = sorted.map(h => {
+        const progress = h.totalPages > 0 ? Math.min(100, Math.round((h.page / h.totalPages) * 100)) : 0;
+        const pageText = `${h.page || 0} / ${h.totalPages || 0}`;
+        return `
+          <div class="history-card" data-id="${escapeHtml(h.id)}">
+            <div class="history-card-icon">📖</div>
+            <div class="history-card-body">
+              <div class="history-card-title">${escapeHtml(h.comicTitle)}</div>
+              <div class="history-card-chapter">${escapeHtml(h.chapterTitle)}</div>
+              <div class="history-progress">
+                <div class="history-progress-bar">
+                  <div class="history-progress-fill" style="width:${progress}%;"></div>
+                </div>
+                <span class="history-progress-text">${pageText} 页</span>
+              </div>
+            </div>
+            <div class="history-card-meta">
+              <span class="history-card-time">${escapeHtml(formatTime(h.readAt))}</span>
+            </div>
+            <div class="history-card-actions">
+              <a href="/reader/${encodeURIComponent(h.comicId)}/${encodeURIComponent(h.chapterId)}" class="btn btn-primary btn-sm btn-continue">继续阅读</a>
+              <button class="history-delete-btn" title="删除该记录" onclick="deleteHistory('${escapeHtml(h.id)}')">×</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function deleteHistory(id) {
+      try {
+        const res = await apiFetch(`/api/user/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('删除失败');
+        historyList = historyList.filter(h => h.id !== id);
+        renderHistory();
+        showToast('已删除该记录', 'success');
+        // 刷新统计
+        loadStats();
+      } catch (err) {
+        showToast(err.message || '删除失败', 'error');
+      }
+    }
+
+    async function clearAllHistory() {
+      if (historyList.length === 0) return;
+      if (!confirm(`确定清空全部 ${historyList.length} 条阅读历史？此操作不可恢复。`)) return;
+
+      try {
+        // 逐条删除
+        const ids = historyList.map(h => h.id);
+        await Promise.all(ids.map(id =>
+          apiFetch(`/api/user/history/${encodeURIComponent(id)}`, { method: 'DELETE' })
+        ));
+        historyList = [];
+        renderHistory();
+        showToast('已清空阅读历史', 'success');
+        loadStats();
+      } catch (err) {
+        showToast('清空失败，部分记录可能未删除', 'error');
+        loadHistory();
+      }
+    }
+
+    // ============ 我的收藏 ============
+    let favoritesList = [];
+
+    async function loadFavorites() {
+      const gridEl = document.getElementById('favoritesGrid');
+      try {
+        const res = await apiFetch('/api/user/favorites');
+        if (!res.ok) throw new Error('加载收藏失败');
+        favoritesList = await res.json();
+        renderFavorites();
+      } catch (err) {
+        gridEl.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="icon">⚠️</div>
+            <h3>加载失败</h3>
+            <p>${escapeHtml(err.message)}</p>
+            <div class="empty-action">
+              <button class="btn btn-sm" onclick="loadFavorites()">重试</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderFavorites() {
+      const gridEl = document.getElementById('favoritesGrid');
+      const countEl = document.getElementById('favoritesCount');
+
+      if (favoritesList.length === 0) {
+        gridEl.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="icon">⭐</div>
+            <h3>还没有收藏</h3>
+            <p>在漫画详情页点击收藏，喜欢的漫画就会出现在这里</p>
+            <div class="empty-action">
+              <a href="/" class="btn btn-primary btn-sm">去发现漫画</a>
+            </div>
+          </div>
+        `;
+        countEl.style.display = 'none';
+        return;
+      }
+
+      countEl.textContent = `共 ${favoritesList.length} 部`;
+      countEl.style.display = 'inline';
+
+      // 按收藏时间倒序
+      const sorted = [...favoritesList].sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+
+      gridEl.innerHTML = sorted.map(f => {
+        return `
+          <div class="comic-card" onclick="location.href='/comic/${encodeURIComponent(f.comicId)}'">
+            <div class="comic-card-cover">
+              ${f.cover
+                ? `<img src="${escapeHtml(f.cover)}" alt="${escapeHtml(f.comicTitle)}" loading="lazy">`
+                : `<div class="placeholder">📕</div>`}
+              <button class="favorite-remove-btn" title="取消收藏" onclick="event.stopPropagation(); removeFavorite('${escapeHtml(f.comicId)}')">×</button>
+              <div class="cover-overlay">
+                <span class="cover-overlay-read">阅读</span>
+              </div>
+            </div>
+            <div class="comic-card-info">
+              <div class="comic-card-title">${escapeHtml(f.comicTitle)}</div>
+              <div class="comic-card-meta">
+                <span>收藏于 ${escapeHtml(formatDate(f.addedAt))}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function removeFavorite(comicId) {
+      try {
+        const res = await apiFetch(`/api/user/favorites/${encodeURIComponent(comicId)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('取消收藏失败');
+        favoritesList = favoritesList.filter(f => f.comicId !== comicId);
+        renderFavorites();
+        showToast('已取消收藏', 'success');
+      } catch (err) {
+        showToast(err.message || '取消收藏失败', 'error');
+      }
+    }
+
+    // ============ 启动 ============
+    loadStats();
+    loadHistory();
+    loadFavorites();
+
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

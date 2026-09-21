@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="theme-color" content="#0d0d0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="漫阅">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <title>漫阅 - 个人漫画馆</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <div class="navbar-brand" onclick="location.href='/'">
+      <span class="logo-icon">📖</span>
+      <span>漫阅</span>
+    </div>
+    <div class="navbar-right">
+      <a href="/" class="navbar-link active">首页</a>
+      <a href="/profile" class="navbar-link">我的</a>
+      <a href="/admin" class="navbar-link">管理</a>
+      <a href="/settings" class="navbar-link">设置</a>
+    </div>
+  </nav>
+
+  <!-- 主内容 -->
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title">全部漫画</h1>
+    </div>
+
+    <!-- 公告横幅 -->
+    <div id="announcementBanner" class="announcement-banner"></div>
+
+    <!-- 统计栏 -->
+    <div id="statsBar" class="stats-bar" style="display:none;">
+      <div class="stat-item">
+        <span class="stat-value" id="statComics">0</span>
+        <span class="stat-label">部漫画</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="statChapters">0</span>
+        <span class="stat-label">个章节</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="statPages">0</span>
+        <span class="stat-label">页内容</span>
+      </div>
+    </div>
+
+    <!-- 搜索排序栏 -->
+    <div class="search-bar" id="searchBar" style="display:none;">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="搜索漫画标题或标签..." oninput="filterComics()">
+      </div>
+      <select id="sortSelect" class="sort-select" onchange="filterComics()">
+        <option value="newest">最新更新</option>
+        <option value="oldest">最早创建</option>
+        <option value="title">标题排序</option>
+        <option value="chapters">章节最多</option>
+      </select>
+    </div>
+
+    <!-- 漫画列表 -->
+    <div id="comicGrid" class="comic-grid">
+      <!-- 骨架屏 -->
+      <div class="skeleton-card">
+        <div class="skeleton-cover"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-cover"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-cover"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-cover"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-cover"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-cover"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+      </div>
+    </div>
+
+    <!-- 无搜索结果 -->
+    <div id="noResults" class="no-results" style="display:none;">
+      <div class="icon">🔍</div>
+      <h3>没有找到匹配的漫画</h3>
+      <p>试试其他关键词吧</p>
+    </div>
+  </div>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <span class="logo-icon">📖</span>
+      <span>漫阅</span>
+    </div>
+    <p>个人漫画浏览平台 · 管理员上传，访客浏览</p>
+    <div class="footer-stats" id="footerStats"></div>
+  </footer>
+
+  <script src="/js/cloud-config.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    let allComics = [];
+    let totalChapters = 0;
+    let totalPages = 0;
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatTime(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function isNew(updatedAt) {
+      const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+      return updatedAt > threeDaysAgo;
+    }
+
+    async function loadComics() {
+      try {
+        const res = await fetch('/api/comics');
+        allComics = await res.json();
+
+        // 计算统计
+        totalChapters = allComics.reduce((sum, c) => sum + c.chapterCount, 0);
+        totalPages = allComics.reduce((sum, c) => sum + (c.pageCount || 0), 0);
+
+        // 显示统计栏
+        document.getElementById('statsBar').style.display = 'flex';
+        document.getElementById('statComics').textContent = allComics.length;
+        document.getElementById('statChapters').textContent = totalChapters;
+        document.getElementById('statPages').textContent = totalPages;
+        document.getElementById('footerStats').textContent =
+          `${allComics.length} 部漫画 · ${totalChapters} 个章节`;
+
+        // 显示搜索栏
+        document.getElementById('searchBar').style.display = 'flex';
+
+        filterComics();
+      } catch (err) {
+        document.getElementById('comicGrid').innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="icon">⚠️</div>
+            <h3>加载失败</h3>
+            <p>${escapeHtml(err.message)}</p>
+          </div>
+        `;
+      }
+    }
+
+    function filterComics() {
+      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+      const sortBy = document.getElementById('sortSelect').value;
+
+      let filtered = allComics.filter(c => {
+        if (!keyword) return true;
+        const inTitle = c.title.toLowerCase().includes(keyword);
+        const inTags = (c.tags || []).some(t => t.toLowerCase().includes(keyword));
+        return inTitle || inTags;
+      });
+
+      // 排序
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'newest': return (b.updatedAt || 0) - (a.updatedAt || 0);
+          case 'oldest': return (a.createdAt || 0) - (b.createdAt || 0);
+          case 'title': return a.title.localeCompare(b.title, 'zh');
+          case 'chapters': return b.chapterCount - a.chapterCount;
+          default: return 0;
+        }
+      });
+
+      renderComics(filtered, keyword);
+    }
+
+    function renderComics(comics, keyword) {
+      const grid = document.getElementById('comicGrid');
+      const noResults = document.getElementById('noResults');
+
+      if (allComics.length === 0) {
+        grid.style.display = 'grid';
+        noResults.style.display = 'none';
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="icon">📚</div>
+            <h3>还没有漫画</h3>
+            <p>管理员可以在后台上传漫画</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (comics.length === 0) {
+        grid.style.display = 'none';
+        noResults.style.display = 'block';
+        return;
+      }
+
+      grid.style.display = 'grid';
+      noResults.style.display = 'none';
+
+      grid.innerHTML = comics.map(c => {
+        const isNewComic = isNew(c.updatedAt);
+        return `
+          <div class="comic-card" onclick="location.href='/comic/${c.id}'">
+            <div class="comic-card-cover">
+              ${c.cover
+                ? `<img src="${c.cover}" alt="${escapeHtml(c.title)}" loading="lazy">`
+                : `<div class="placeholder">📕</div>`}
+              ${isNewComic ? `<span class="badge-new">NEW</span>` : ''}
+              <div class="cover-overlay">
+                <span class="cover-overlay-read">阅读</span>
+              </div>
+            </div>
+            <div class="comic-card-info">
+              <div class="comic-card-title">${escapeHtml(c.title)}</div>
+              <div class="comic-card-meta">
+                <span>${c.chapterCount} 章</span>
+                <span>·</span>
+                <span>${formatTime(c.updatedAt)}</span>
+              </div>
+              ${c.tags && c.tags.length > 0
+                ? `<div class="comic-card-tags">${c.tags.slice(0, 3).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>`
+                : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    loadComics();
+    loadAnnouncements();
+
+    // 加载公告
+    async function loadAnnouncements() {
+      try {
+        const res = await fetch('/api/announcements');
+        const announcements = await res.json();
+        const banner = document.getElementById('announcementBanner');
+
+        if (announcements.length === 0) {
+          banner.style.display = 'none';
+          return;
+        }
+
+        const icons = { info: '📢', success: '✅', warning: '⚠️', danger: '🔴' };
+        banner.style.display = 'block';
+        banner.innerHTML = announcements.slice(0, 5).map(a => `
+          <div class="announcement-card type-${a.type}" id="announcement-${a.id}">
+            <div class="announcement-card-header">
+              <span class="announcement-icon">${icons[a.type] || '📢'}</span>
+              <span class="announcement-title">${escapeHtml(a.title)}</span>
+              <button class="announcement-close" onclick="dismissAnnouncement(${a.id})">&times;</button>
+            </div>
+            <div class="announcement-content">${escapeHtml(a.content)}</div>
+            <div class="announcement-time">${formatTime(a.createdAt)}</div>
+          </div>
+        `).join('');
+      } catch (e) {
+        // 静默失败
+      }
+    }
+
+    function dismissAnnouncement(id) {
+      const el = document.getElementById(`announcement-${id}`);
+      if (el) {
+        el.style.display = 'none';
+        // 如果没有公告了，隐藏整个区域
+        const banner = document.getElementById('announcementBanner');
+        const visible = banner.querySelectorAll('.announcement-card:not([style*="display: none"])');
+        if (visible.length === 0) banner.style.display = 'none';
+      }
+    }
+
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

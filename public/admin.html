@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="theme-color" content="#0d0d0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <title>管理后台 - 漫阅</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <div class="navbar-brand" onclick="location.href='/'">
+      <span class="logo-icon">📖</span>
+      <span>漫阅</span>
+    </div>
+    <div class="navbar-right">
+      <a href="/" class="navbar-link">首页</a>
+      <a href="/profile" class="navbar-link">我的</a>
+      <a href="/admin" class="navbar-link active">管理</a>
+      <a href="/settings" class="navbar-link">设置</a>
+    </div>
+  </nav>
+
+  <!-- 登录页面 -->
+  <div id="loginView" class="admin-login-container" style="display:none;">
+    <div class="admin-login-box">
+      <h2 class="admin-login-title">管理员登录</h2>
+      <div class="form-group">
+        <label class="form-label">密码</label>
+        <input type="password" id="loginPassword" class="form-input" placeholder="请输入管理员密码"
+          onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="doLogin()">登 录</button>
+    </div>
+  </div>
+
+  <!-- 管理后台主页 -->
+  <div id="adminView" style="display:none;">
+    <div class="container">
+      <div class="admin-layout">
+        <!-- 侧边栏 -->
+        <div class="admin-sidebar">
+          <div class="admin-sidebar-menu">
+            <button class="admin-menu-item active" data-view="comics" onclick="switchView('comics')">📚 漫画管理</button>
+            <button class="admin-menu-item" data-view="create" onclick="switchView('create')">➕ 创建漫画</button>
+            <button class="admin-menu-item" data-view="upload" onclick="switchView('upload')">📤 上传图片</button>
+            <button class="admin-menu-item" data-view="announcements" onclick="switchView('announcements')">📢 公告管理</button>
+            <button class="admin-menu-item" onclick="doLogout()">🚪 退出登录</button>
+          </div>
+
+          <!-- 部署状态 -->
+          <div class="deploy-status-panel">
+            <div class="deploy-status-header">☁️ 云端部署</div>
+            <div id="deployStatusInfo" class="deploy-status-info">
+              <span class="deploy-status-dot" id="deployStatusDot"></span>
+              <span id="deployStatusText">检查中...</span>
+            </div>
+            <button id="manualDeployBtn" class="btn btn-sm deploy-btn" onclick="manualDeploy()">
+              🚀 立即部署
+            </button>
+          </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="admin-main">
+          <!-- 漫画管理 -->
+          <div id="view-comics" class="admin-content-view">
+            <div class="page-header">
+              <h1 class="page-title">漫画管理</h1>
+              <button class="btn btn-primary btn-sm" onclick="switchView('create')">创建新漫画</button>
+            </div>
+            <div id="adminComicList" class="admin-comic-list">
+              <div class="loading"><div class="spinner"></div><p>加载中...</p></div>
+            </div>
+          </div>
+
+          <!-- 创建漫画 -->
+          <div id="view-create" class="admin-content-view" style="display:none;">
+            <div class="page-header">
+              <h1 class="page-title">创建漫画</h1>
+            </div>
+            <div style="max-width:600px;">
+              <div class="form-group">
+                <label class="form-label">标题 *</label>
+                <input type="text" id="newComicTitle" class="form-input" placeholder="漫画标题">
+              </div>
+              <div class="form-group">
+                <label class="form-label">简介</label>
+                <textarea id="newComicDesc" class="form-textarea" placeholder="漫画简介（可选）"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">标签</label>
+                <input type="text" id="newComicTags" class="form-input" placeholder="多个标签用逗号分隔，如：冒险,科幻,日常">
+              </div>
+              <div class="form-group">
+                <label class="form-label">封面图片</label>
+                <input type="file" id="newComicCover" class="form-input" accept="image/*">
+                <div id="coverPreview" style="margin-top:8px;display:none;">
+                  <img id="coverPreviewImg" style="width:120px;height:160px;object-fit:cover;border-radius:8px;">
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="createComic()">创建漫画</button>
+              <button class="btn" onclick="switchView('comics')">取消</button>
+            </div>
+          </div>
+
+          <!-- 上传图片 -->
+          <div id="view-upload" class="admin-content-view" style="display:none;">
+            <div class="page-header">
+              <h1 class="page-title">上传图片</h1>
+            </div>
+            <div style="max-width:800px;">
+              <!-- 选择漫画和章节 -->
+              <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:200px;">
+                  <label class="form-label">选择漫画</label>
+                  <select id="uploadComicSelect" class="form-select" onchange="loadChaptersForUpload()">
+                    <option value="">请选择漫画</option>
+                  </select>
+                </div>
+                <div style="flex:1;min-width:200px;">
+                  <label class="form-label">选择章节</label>
+                  <select id="uploadChapterSelect" class="form-select" onchange="onChapterSelectChange()">
+                    <option value="">请先选择漫画</option>
+                  </select>
+                </div>
+                <div style="flex:1;min-width:200px;display:flex;align-items:flex-end;">
+                  <button class="btn btn-sm" onclick="showCreateChapterModal()">+ 新建章节</button>
+                </div>
+              </div>
+
+              <!-- 章节阅读模式提示 -->
+              <div id="chapterModeHint" style="display:none;margin-bottom:16px;padding:10px 16px;border-radius:8px;font-size:13px;"></div>
+
+              <!-- 上传模式选择 -->
+              <div class="upload-mode-selector">
+                <div class="upload-mode-title">选择上传类型</div>
+                <div class="upload-mode-options">
+                  <label class="upload-mode-option">
+                    <input type="radio" name="uploadMode" value="normal" checked onchange="onUploadModeChange()">
+                    <div class="upload-mode-card">
+                      <div class="upload-mode-icon">📱</div>
+                      <div class="upload-mode-label">普通截图</div>
+                      <div class="upload-mode-desc">每张图作为独立页面，正常翻页浏览</div>
+                    </div>
+                  </label>
+                  <label class="upload-mode-option">
+                    <input type="radio" name="uploadMode" value="long" onchange="onUploadModeChange()">
+                    <div class="upload-mode-card">
+                      <div class="upload-mode-icon">📜</div>
+                      <div class="upload-mode-label">长截屏</div>
+                      <div class="upload-mode-desc">多张长截屏拼接成连续长图，滚动浏览</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 图库选择区域 -->
+              <div id="galleryPicker" class="gallery-picker">
+                <div class="gallery-picker-icon">🖼️</div>
+                <div class="gallery-picker-text">从手机图库选择图片</div>
+                <div class="gallery-picker-subtext" id="galleryHint">支持 JPG, PNG, WebP，最多100张</div>
+                <button class="btn btn-primary gallery-picker-btn" onclick="openGallery()">📂 选择图片</button>
+                <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
+              </div>
+
+              <!-- 已选文件预览 -->
+              <div id="uploadPreview" class="upload-preview" style="display:none;"></div>
+
+              <!-- 长截屏拼接预览 -->
+              <div id="stitchPreview" style="display:none;">
+                <div class="stitch-preview-title">
+                  <span>📜 长图拼接预览</span>
+                  <span id="stitchInfo" style="font-size:12px;color:var(--text-secondary);"></span>
+                </div>
+                <div class="stitch-preview-container">
+                  <img id="stitchPreviewImg" style="width:100%;max-width:400px;border-radius:8px;border:1px solid var(--border-color);">
+                </div>
+              </div>
+
+              <!-- 上传按钮 -->
+              <div id="uploadActions" style="display:none;margin-top:20px;">
+                <button class="btn btn-primary" id="uploadBtn" onclick="doUpload()">开始上传</button>
+                <button class="btn" onclick="clearSelectedFiles()">清空选择</button>
+                <span id="uploadStatus" style="margin-left:12px;font-size:13px;color:var(--text-secondary);"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 公告管理 -->
+          <div id="view-announcements" class="admin-content-view" style="display:none;">
+            <div class="page-header">
+              <h1 class="page-title">公告管理</h1>
+            </div>
+
+            <!-- 发布表单 -->
+            <div style="max-width:700px;margin-bottom:32px;padding:20px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);">
+              <div class="form-group">
+                <label class="form-label">公告标题 *</label>
+                <input type="text" id="annTitle" class="form-input" placeholder="如：新漫画上线通知">
+              </div>
+              <div class="form-group">
+                <label class="form-label">公告内容 *</label>
+                <textarea id="annContent" class="form-textarea" rows="4" placeholder="公告详细内容..."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">公告类型</label>
+                <select id="annType" class="form-select">
+                  <option value="info">📢 普通</option>
+                  <option value="success">✅ 好消息</option>
+                  <option value="warning">⚠️ 警告</option>
+                  <option value="danger">🔴 紧急</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="createAnnouncement()">发布公告</button>
+            </div>
+
+            <!-- 公告列表 -->
+            <div class="page-header">
+              <h2 class="page-title" style="font-size:18px;">已发布公告</h2>
+            </div>
+            <div id="announcementList">
+              <div class="loading"><div class="spinner"></div><p>加载中...</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 创建章节模态框 -->
+  <div id="chapterModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeChapterModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">新建章节</span>
+        <button class="modal-close" onclick="closeChapterModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">章节标题 *</label>
+          <input type="text" id="newChapterTitle" class="form-input" placeholder="如：第1话">
+        </div>
+        <div class="form-group">
+          <label class="form-label">阅读模式</label>
+          <select id="newChapterReadMode" class="form-select">
+            <option value="page">📱 翻页模式（普通截图）</option>
+            <option value="scroll">📜 滚动模式（长截屏）</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeChapterModal()">取消</button>
+        <button class="btn btn-primary" onclick="createChapter()">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑漫画模态框 -->
+  <div id="editModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeEditModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">编辑漫画</span>
+        <button class="modal-close" onclick="closeEditModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editComicId">
+        <div class="form-group">
+          <label class="form-label">标题 *</label>
+          <input type="text" id="editComicTitle" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">简介</label>
+          <textarea id="editComicDesc" class="form-textarea"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <input type="text" id="editComicTags" class="form-input" placeholder="逗号分隔">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeEditModal()">取消</button>
+        <button class="btn btn-primary" onclick="updateComic()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/cloud-config.js"></script>
+  <script>
+    // ============ 初始化 ============
+    let isAdmin = false;
+    let selectedFiles = [];
+    let adminComics = [];
+
+    async function checkAuth() {
+      const res = await fetch('/api/auth/status');
+      const data = await res.json();
+      isAdmin = data.isAdmin;
+
+      if (isAdmin) {
+        document.getElementById('adminView').style.display = 'block';
+        document.getElementById('loginView').style.display = 'none';
+        loadAdminComics();
+        loadComicsForSelect();
+        // 管理员登录后自动触发云端部署
+        autoDeployOnLogin();
+      } else {
+        document.getElementById('adminView').style.display = 'none';
+        document.getElementById('loginView').style.display = 'flex';
+      }
+    }
+
+    // ============ 登录/登出 ============
+    async function doLogin() {
+      const password = document.getElementById('loginPassword').value;
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('登录成功', 'success');
+          await checkAuth();
+          // 登录成功后自动部署（延迟2秒，确保页面加载完成）
+          setTimeout(autoDeployOnLogin, 2000);
+        } else {
+          showToast(data.error || '登录失败', 'error');
+        }
+      } catch (err) {
+        showToast('网络错误', 'error');
+      }
+    }
+
+    async function doLogout() {
+      await fetch('/api/logout', { method: 'POST' });
+      showToast('已登出', 'info');
+      checkAuth();
+    }
+
+    // ============ 视图切换 ============
+    function switchView(view) {
+      document.querySelectorAll('.admin-content-view').forEach(el => {
+        el.style.display = 'none';
+      });
+      document.getElementById(`view-${view}`).style.display = 'block';
+
+      document.querySelectorAll('.admin-menu-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.view === view);
+      });
+
+      if (view === 'comics') loadAdminComics();
+      if (view === 'upload') loadComicsForSelect();
+      if (view === 'announcements') loadAnnouncements();
+    }
+
+    // ============ 漫画管理 ============
+    async function loadAdminComics() {
+      try {
+        const res = await fetch('/api/comics');
+        adminComics = await res.json();
+        const list = document.getElementById('adminComicList');
+
+        if (adminComics.length === 0) {
+          list.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">📚</div>
+              <h3>还没有漫画</h3>
+              <p>点击"创建新漫画"开始</p>
+            </div>
+          `;
+          return;
+        }
+
+        list.innerHTML = adminComics.map(c => `
+          <div class="admin-comic-item">
+            <div class="admin-comic-cover">
+              ${c.cover ? `<img src="${c.cover}">` : '<div class="placeholder">📕</div>'}
+            </div>
+            <div class="admin-comic-info">
+              <div class="admin-comic-title">${escapeHtml(c.title)}</div>
+              <div class="admin-comic-meta">${c.chapterCount} 章</div>
+            </div>
+            <div class="admin-comic-actions">
+              <button class="btn btn-sm" onclick="location.href='/comic?id=${c.id}'">查看</button>
+              <button class="btn btn-sm" onclick='editComic(${c.id})'>编辑</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteComic(${c.id})">删除</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        showToast('加载失败', 'error');
+      }
+    }
+
+    // ============ 创建漫画 ============
+    async function createComic() {
+      const title = document.getElementById('newComicTitle').value.trim();
+      const description = document.getElementById('newComicDesc').value.trim();
+      const tagsStr = document.getElementById('newComicTags').value.trim();
+      const coverFile = document.getElementById('newComicCover').files[0];
+
+      if (!title) {
+        showToast('请填写标题', 'error');
+        return;
+      }
+
+      const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+      try {
+        // 创建漫画
+        const res = await fetch('/api/admin/comics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, tags })
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          showToast(data.error || '创建失败', 'error');
+          return;
+        }
+
+        const comicId = data.comic.id;
+
+        // 如果有封面图片，上传
+        if (coverFile) {
+          const formData = new FormData();
+          formData.append('cover', coverFile);
+          const coverRes = await fetch(`/api/admin/comics/${comicId}/cover`, {
+            method: 'POST',
+            body: formData
+          });
+          const coverData = await coverRes.json();
+          if (!coverData.success) {
+            showToast('漫画已创建，但封面上传失败', 'error');
+          }
+        }
+
+        showToast('漫画创建成功', 'success');
+        // 清空表单
+        document.getElementById('newComicTitle').value = '';
+        document.getElementById('newComicDesc').value = '';
+        document.getElementById('newComicTags').value = '';
+        document.getElementById('newComicCover').value = '';
+        document.getElementById('coverPreview').style.display = 'none';
+        // 切换到漫画列表
+        switchView('comics');
+      } catch (err) {
+        showToast('创建失败', 'error');
+      }
+    }
+
+    // 封面预览
+    document.getElementById('newComicCover').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('coverPreviewImg').src = e.target.result;
+          document.getElementById('coverPreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // ============ 编辑漫画 ============
+    function editComic(id) {
+      const comic = adminComics.find(c => c.id === id);
+      if (!comic) return;
+      // 获取完整信息
+      fetch(`/api/comics/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('editComicId').value = id;
+          document.getElementById('editComicTitle').value = data.title;
+          document.getElementById('editComicDesc').value = data.description || '';
+          document.getElementById('editComicTags').value = (data.tags || []).join(', ');
+          document.getElementById('editModal').style.display = 'flex';
+        });
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    async function updateComic() {
+      const id = document.getElementById('editComicId').value;
+      const title = document.getElementById('editComicTitle').value.trim();
+      const description = document.getElementById('editComicDesc').value.trim();
+      const tagsStr = document.getElementById('editComicTags').value.trim();
+      const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+      const res = await fetch(`/api/admin/comics/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, tags })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('更新成功', 'success');
+        closeEditModal();
+        loadAdminComics();
+      } else {
+        showToast(data.error || '更新失败', 'error');
+      }
+    }
+
+    // ============ 删除漫画 ============
+    async function deleteComic(id) {
+      if (!confirm('确定删除这个漫画？所有相关图片将被删除，此操作不可恢复。')) return;
+      const res = await fetch(`/api/admin/comics/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('已删除', 'success');
+        loadAdminComics();
+      } else {
+        showToast(data.error || '删除失败', 'error');
+      }
+    }
+
+    // ============ 章节管理 ============
+    function showCreateChapterModal() {
+      const comicSelect = document.getElementById('uploadComicSelect');
+      if (!comicSelect.value) {
+        showToast('请先选择漫画', 'error');
+        return;
+      }
+      document.getElementById('newChapterTitle').value = '';
+      document.getElementById('chapterModal').style.display = 'flex';
+    }
+
+    function closeChapterModal() {
+      document.getElementById('chapterModal').style.display = 'none';
+    }
+
+    async function createChapter() {
+      const comicId = document.getElementById('uploadComicSelect').value;
+      const title = document.getElementById('newChapterTitle').value.trim();
+      const readMode = document.getElementById('newChapterReadMode').value;
+      if (!title) {
+        showToast('请填写章节标题', 'error');
+        return;
+      }
+      const res = await fetch(`/api/admin/comics/${comicId}/chapters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, readMode })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('章节创建成功', 'success');
+        closeChapterModal();
+        await loadChaptersForUpload();
+        // 自动选中新章节
+        const select = document.getElementById('uploadChapterSelect');
+        select.value = data.chapter.id;
+        onChapterSelectChange();
+      } else {
+        showToast(data.error || '创建失败', 'error');
+      }
+    }
+
+    // ============ 上传图片 ============
+    let uploadMode = 'normal'; // 'normal' or 'long'
+    let chapterReadMode = 'page'; // current chapter's read mode
+    let stitchedBlob = null; // stitched image blob for long screenshot mode
+
+    async function loadComicsForSelect() {
+      const res = await fetch('/api/comics');
+      const comics = await res.json();
+      const select = document.getElementById('uploadComicSelect');
+      select.innerHTML = '<option value="">请选择漫画</option>' +
+        comics.map(c => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('');
+    }
+
+    async function loadChaptersForUpload() {
+      const comicId = document.getElementById('uploadComicSelect').value;
+      const chapterSelect = document.getElementById('uploadChapterSelect');
+      if (!comicId) {
+        chapterSelect.innerHTML = '<option value="">请先选择漫画</option>';
+        document.getElementById('chapterModeHint').style.display = 'none';
+        return;
+      }
+      const res = await fetch(`/api/comics/${comicId}`);
+      const comic = await res.json();
+      chapterSelect.innerHTML = '<option value="">请选择章节</option>' +
+        (comic.chapters || []).map(ch => `<option value="${ch.id}" data-readmode="${ch.readMode || 'page'}">${escapeHtml(ch.title)} (${ch.pageCount}页${ch.readMode === 'scroll' ? '·滚动' : ''})</option>`).join('');
+      onChapterSelectChange();
+    }
+
+    function onChapterSelectChange() {
+      const select = document.getElementById('uploadChapterSelect');
+      const selected = select.options[select.selectedIndex];
+      if (!selected || !select.value) {
+        document.getElementById('chapterModeHint').style.display = 'none';
+        chapterReadMode = 'page';
+        return;
+      }
+      chapterReadMode = selected.dataset.readmode || 'page';
+      const hint = document.getElementById('chapterModeHint');
+      hint.style.display = 'block';
+      if (chapterReadMode === 'scroll') {
+        hint.style.background = 'rgba(91,141,239,0.12)';
+        hint.style.color = '#7ec8e3';
+        hint.innerHTML = '📜 当前章节为<strong>滚动模式</strong>（长截屏），建议选择"长截屏"上传类型';
+        // Auto-select long mode
+        const longRadio = document.querySelector('input[name="uploadMode"][value="long"]');
+        if (longRadio) {
+          longRadio.checked = true;
+          onUploadModeChange();
+        }
+      } else {
+        hint.style.background = 'rgba(76,175,80,0.12)';
+        hint.style.color = '#7ed0a0';
+        hint.innerHTML = '📱 当前章节为<strong>翻页模式</strong>（普通截图），建议选择"普通截图"上传类型';
+      }
+    }
+
+    function onUploadModeChange() {
+      const checked = document.querySelector('input[name="uploadMode"]:checked');
+      uploadMode = checked ? checked.value : 'normal';
+      const hint = document.getElementById('galleryHint');
+      const stitchPreview = document.getElementById('stitchPreview');
+      
+      if (uploadMode === 'long') {
+        hint.textContent = '长截屏模式：选择的长截屏将自动拼接为一张连续长图';
+        stitchPreview.style.display = selectedFiles.length > 0 ? 'block' : 'none';
+      } else {
+        hint.textContent = '支持 JPG, PNG, WebP，最多100张';
+        stitchPreview.style.display = 'none';
+      }
+      
+      // Re-process selected files
+      if (selectedFiles.length > 0) {
+        renderUploadPreview();
+        if (uploadMode === 'long') {
+          processStitching();
+        }
+      }
+    }
+
+    function openGallery() {
+      document.getElementById('fileInput').click();
+    }
+
+    function handleFileSelect(event) {
+      handleFiles(event.target.files);
+      event.target.value = ''; // Reset to allow re-selecting same files
+    }
+
+    async function handleFiles(files) {
+      const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (arr.length === 0) {
+        showToast('请选择图片文件', 'error');
+        return;
+      }
+      selectedFiles = [...selectedFiles, ...arr];
+      renderUploadPreview();
+      
+      if (uploadMode === 'long') {
+        await processStitching();
+      }
+    }
+
+    function renderUploadPreview() {
+      const preview = document.getElementById('uploadPreview');
+      const actions = document.getElementById('uploadActions');
+
+      if (selectedFiles.length === 0) {
+        preview.style.display = 'none';
+        actions.style.display = 'none';
+        document.getElementById('stitchPreview').style.display = 'none';
+        return;
+      }
+
+      preview.style.display = 'grid';
+      actions.style.display = 'flex';
+      preview.innerHTML = selectedFiles.map((file, index) => {
+        const url = URL.createObjectURL(file);
+        return `
+          <div class="upload-preview-item">
+            <img src="${url}" alt="预览${index + 1}">
+            <span class="page-number">${index + 1}</span>
+            <button class="remove-btn" onclick="removeFile(${index})">&times;</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      renderUploadPreview();
+      if (uploadMode === 'long') {
+        await processStitching();
+      }
+    }
+
+    function clearSelectedFiles() {
+      selectedFiles = [];
+      stitchedBlob = null;
+      document.getElementById('fileInput').value = '';
+      document.getElementById('stitchPreview').style.display = 'none';
+      renderUploadPreview();
+    }
+
+    // ============ 长截屏拼接逻辑 ============
+    async function processStitching() {
+      const stitchPreview = document.getElementById('stitchPreview');
+      const stitchImg = document.getElementById('stitchPreviewImg');
+      const stitchInfo = document.getElementById('stitchInfo');
+
+      if (selectedFiles.length === 0) {
+        stitchPreview.style.display = 'none';
+        stitchedBlob = null;
+        return;
+      }
+
+      stitchPreview.style.display = 'block';
+      stitchInfo.textContent = '正在拼接...';
+
+      try {
+        // Load all images
+        const images = await Promise.all(selectedFiles.map(file => loadImage(file)));
+        
+        // Calculate total height and max width
+        const maxWidth = Math.max(...images.map(img => img.width));
+        const totalHeight = images.reduce((sum, img) => sum + img.height, 0);
+
+        // Create canvas for stitching
+        const canvas = document.createElement('canvas');
+        canvas.width = maxWidth;
+        canvas.height = totalHeight;
+        const ctx = canvas.getContext('2d');
+
+        // Fill background white
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw each image vertically
+        let yOffset = 0;
+        for (const img of images) {
+          // Center horizontally if narrower than max width
+          const xOffset = Math.floor((maxWidth - img.width) / 2);
+          ctx.drawImage(img, xOffset, yOffset, img.width, img.height);
+          yOffset += img.height;
+        }
+
+        // Convert to blob
+        stitchedBlob = await new Promise(resolve => {
+          canvas.toBlob(resolve, 'image/jpeg', 0.92);
+        });
+
+        // Show preview
+        const url = URL.createObjectURL(stitchedBlob);
+        stitchImg.src = url;
+        
+        const sizeKB = Math.round(stitchedBlob.size / 1024);
+        const sizeText = sizeKB > 1024 ? `${(sizeKB/1024).toFixed(1)}MB` : `${sizeKB}KB`;
+        stitchInfo.textContent = `拼接完成：${images.length}张图 → 1张长图 (${canvas.width}×${canvas.height}, ${sizeText})`;
+      } catch (err) {
+        console.error('Stitching error:', err);
+        stitchInfo.textContent = '拼接失败：' + err.message;
+        stitchInfo.style.color = 'var(--danger)';
+        stitchedBlob = null;
+      }
+    }
+
+    function loadImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = (e) => {
+          URL.revokeObjectURL(url);
+          reject(new Error('图片加载失败'));
+        };
+        img.src = url;
+      });
+    }
+
+    async function doUpload() {
+      const comicId = document.getElementById('uploadComicSelect').value;
+      const chapterId = document.getElementById('uploadChapterSelect').value;
+
+      if (!comicId) {
+        showToast('请选择漫画', 'error');
+        return;
+      }
+      if (!chapterId) {
+        showToast('请选择章节', 'error');
+        return;
+      }
+      if (selectedFiles.length === 0) {
+        showToast('请选择图片', 'error');
+        return;
+      }
+
+      // Update chapter readMode if needed
+      const targetReadMode = uploadMode === 'long' ? 'scroll' : 'page';
+      if (chapterReadMode !== targetReadMode) {
+        try {
+          await fetch(`/api/admin/comics/${comicId}/chapters/${chapterId}/readMode`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ readMode: targetReadMode })
+          });
+          chapterReadMode = targetReadMode;
+        } catch(e) {
+          console.warn('Failed to update chapter readMode:', e);
+        }
+      }
+
+      const uploadBtn = document.getElementById('uploadBtn');
+      const status = document.getElementById('uploadStatus');
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = '上传中...';
+
+      const formData = new FormData();
+      formData.append('comicId', comicId);
+      formData.append('chapterId', chapterId);
+
+      if (uploadMode === 'long') {
+        // Long screenshot mode: upload stitched image as single page
+        if (!stitchedBlob) {
+          showToast('长图拼接未完成，请稍候', 'error');
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = '开始上传';
+          return;
+        }
+        status.textContent = `正在上传拼接长图 (${Math.round(stitchedBlob.size/1024)}KB)...`;
+        formData.append('images', stitchedBlob, `stitched-${Date.now()}.jpg`);
+      } else {
+        // Normal mode: upload each image as separate page
+        status.textContent = `正在上传 ${selectedFiles.length} 张图片...`;
+        selectedFiles.forEach(file => {
+          formData.append('images', file);
+        });
+      }
+
+      try {
+        const res = await fetch(`/api/admin/comics/${comicId}/chapters/${chapterId}/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          const msg = uploadMode === 'long' 
+            ? `长图上传成功，共 ${data.totalPages} 页` 
+            : `成功上传 ${data.uploadedCount} 张图片，共 ${data.totalPages} 页`;
+          showToast(msg, 'success');
+          clearSelectedFiles();
+          await loadChaptersForUpload();
+          document.getElementById('uploadChapterSelect').value = chapterId;
+          onChapterSelectChange();
+        } else {
+          showToast(data.error || '上传失败', 'error');
+        }
+      } catch (err) {
+        showToast('上传失败', 'error');
+      } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = '开始上传';
+        status.textContent = '';
+      }
+    }
+
+    // ============ 公告管理 ============
+
+    async function loadAnnouncements() {
+      try {
+        const res = await fetch('/api/admin/announcements/all');
+        const announcements = await res.json();
+        const list = document.getElementById('announcementList');
+
+        if (announcements.length === 0) {
+          list.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">📢</div>
+              <h3>还没有公告</h3>
+              <p>在上方发布你的第一条公告</p>
+            </div>
+          `;
+          return;
+        }
+
+        const typeLabels = { info: '普通', success: '好消息', warning: '警告', danger: '紧急' };
+        const typeIcons = { info: '📢', success: '✅', warning: '⚠️', danger: '🔴' };
+
+        list.innerHTML = announcements.map(a => `
+          <div class="admin-announcement-item">
+            <div class="admin-announcement-info">
+              <div class="admin-announcement-title-row">
+                <span class="announcement-type-badge ${a.type}">${typeLabels[a.type] || '普通'}</span>
+                <span style="font-size:14px;font-weight:600;">${escapeHtml(a.title)}</span>
+                <span class="announcement-status ${a.active ? 'active' : 'inactive'}">${a.active ? '启用中' : '已禁用'}</span>
+              </div>
+              <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;white-space:pre-wrap;">${escapeHtml(a.content)}</div>
+              <div style="font-size:11px;color:var(--text-muted);">${formatTime(a.createdAt)}</div>
+            </div>
+            <div class="admin-announcement-actions">
+              <button class="btn btn-sm" onclick="toggleAnnouncement(${a.id}, ${!a.active})">
+                ${a.active ? '禁用' : '启用'}
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="deleteAnnouncement(${a.id})">删除</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        showToast('加载公告失败', 'error');
+      }
+    }
+
+    async function createAnnouncement() {
+      const title = document.getElementById('annTitle').value.trim();
+      const content = document.getElementById('annContent').value.trim();
+      const type = document.getElementById('annType').value;
+
+      if (!title) { showToast('请填写标题', 'error'); return; }
+      if (!content) { showToast('请填写内容', 'error'); return; }
+
+      try {
+        const res = await fetch('/api/admin/announcements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content, type })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('公告发布成功', 'success');
+          document.getElementById('annTitle').value = '';
+          document.getElementById('annContent').value = '';
+          document.getElementById('annType').value = 'info';
+          loadAnnouncements();
+        } else {
+          showToast(data.error || '发布失败', 'error');
+        }
+      } catch (err) {
+        showToast('网络错误', 'error');
+      }
+    }
+
+    async function toggleAnnouncement(id, active) {
+      const res = await fetch(`/api/admin/announcements/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(active ? '已启用' : '已禁用', 'success');
+        loadAnnouncements();
+      }
+    }
+
+    async function deleteAnnouncement(id) {
+      if (!confirm('确定删除这条公告？')) return;
+      const res = await fetch(`/api/admin/announcements/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('已删除', 'success');
+        loadAnnouncements();
+      }
+    }
+
+    function formatTime(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    // ============ 工具函数 ============
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.transition = 'all 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ============ 自动部署 ============
+
+    let lastDeployTime = 0;
+    const DEPLOY_COOLDOWN = 5 * 60 * 1000; // 5分钟冷却，避免频繁触发
+
+    // 管理员登录后自动部署
+    async function autoDeployOnLogin() {
+      const hookUrl = getDeployHook();
+      if (!hookUrl) {
+        updateDeployStatus('not-configured', '未配置 Deploy Hook');
+        return;
+      }
+
+      if (!isAutoDeployEnabled()) {
+        updateDeployStatus('disabled', '自动部署已关闭');
+        return;
+      }
+
+      // 冷却检查
+      const now = Date.now();
+      if (now - lastDeployTime < DEPLOY_COOLDOWN) {
+        const remaining = Math.ceil((DEPLOY_COOLDOWN - (now - lastDeployTime)) / 1000);
+        updateDeployStatus('cooldown', `冷却中 (${remaining}s)`);
+        return;
+      }
+
+      updateDeployStatus('deploying', '正在触发部署...');
+      const result = await triggerDeploy();
+
+      if (result.success) {
+        lastDeployTime = Date.now();
+        updateDeployStatus('success', '部署已触发');
+        showToast('☁️ 云端部署已自动触发', 'success');
+      } else {
+        updateDeployStatus('failed', result.message);
+        // 静默失败，不打扰管理员
+        console.warn('Auto-deploy failed:', result.message);
+      }
+    }
+
+    // 手动触发部署
+    async function manualDeploy() {
+      const hookUrl = getDeployHook();
+      if (!hookUrl) {
+        showToast('请先在设置页面配置 Deploy Hook URL', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('manualDeployBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ 部署中...';
+      updateDeployStatus('deploying', '正在触发部署...');
+
+      const result = await triggerDeploy();
+
+      if (result.success) {
+        lastDeployTime = Date.now();
+        updateDeployStatus('success', '部署已触发');
+        showToast('🚀 ' + result.message, 'success');
+      } else {
+        updateDeployStatus('failed', result.message);
+        showToast('部署失败：' + result.message, 'error');
+      }
+
+      btn.disabled = false;
+      btn.textContent = '🚀 立即部署';
+    }
+
+    // 更新部署状态显示
+    function updateDeployStatus(state, message) {
+      const dot = document.getElementById('deployStatusDot');
+      const text = document.getElementById('deployStatusText');
+
+      if (!dot || !text) return;
+
+      text.textContent = message;
+
+      dot.className = 'deploy-status-dot ' + state;
+      const colors = {
+        'not-configured': '#5a5a5e',
+        'disabled': '#5a5a5e',
+        'deploying': '#5b8def',
+        'success': '#4caf50',
+        'failed': '#e0625e',
+        'cooldown': '#f5a623'
+      };
+      dot.style.background = colors[state] || '#5a5a5e';
+    }
+
+    // 启动
+    checkAuth();
+  </script>
+</body>
+</html>

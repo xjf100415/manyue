@@ -1,0 +1,15 @@
+{
+  "name": "jm-clone",
+  "version": "1.0.0",
+  "description": "个人漫画/图片浏览平台 - 管理员可上传，访客仅浏览",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "express-session": "^1.17.3"
+  }
+}

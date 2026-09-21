@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="theme-color" content="#0d0d0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="漫阅">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <title>云服务设置 - 漫阅</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ============ 云服务设置页专用样式 ============ */
+
+    .settings-hero {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 28px 24px;
+      background: linear-gradient(135deg, rgba(91, 141, 239, 0.12), rgba(138, 109, 255, 0.08));
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      margin-bottom: 32px;
+    }
+
+    .settings-hero-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #8a6dff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(91, 141, 239, 0.3);
+    }
+
+    .settings-hero-info h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .settings-hero-info p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* 设置区块 */
+    .settings-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+
+    .settings-section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .settings-section-title .section-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius);
+      background: var(--accent-light);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    /* 连接状态卡片 */
+    .connection-status-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      transition: var(--transition);
+    }
+
+    .connection-status-card.connected {
+      border-color: var(--success);
+      background: rgba(76, 175, 80, 0.08);
+    }
+
+    .connection-status-card.disconnected {
+      border-color: var(--danger);
+      background: rgba(224, 98, 94, 0.08);
+    }
+
+    .connection-status-card.testing {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .connection-status-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      background: var(--bg-card);
+      transition: var(--transition);
+    }
+
+    .connection-status-card.connected .connection-status-icon {
+      background: rgba(76, 175, 80, 0.15);
+      color: var(--success);
+    }
+
+    .connection-status-card.disconnected .connection-status-icon {
+      background: rgba(224, 98, 94, 0.15);
+      color: var(--danger);
+    }
+
+    .connection-status-card.testing .connection-status-icon {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .connection-status-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .connection-status-label {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .connection-status-card.connected .connection-status-label {
+      color: var(--success);
+    }
+
+    .connection-status-card.disconnected .connection-status-label {
+      color: var(--danger);
+    }
+
+    .connection-status-card.testing .connection-status-label {
+      color: var(--accent);
+    }
+
+    .connection-status-detail {
+      font-size: 13px;
+      color: var(--text-secondary);
+      word-break: break-all;
+    }
+
+    /* 当前服务器信息 */
+    .current-server-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+
+    .current-server-info .info-label {
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .current-server-info .info-value {
+      color: var(--text-primary);
+      font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+      word-break: break-all;
+      flex: 1;
+    }
+
+    .current-server-info .info-value.empty {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* 表单布局 */
+    .settings-form {
+      max-width: 640px;
+    }
+
+    .settings-form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* 说明文字 */
+    .settings-instructions {
+      padding: 20px;
+      background: var(--accent-light);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+    }
+
+    .settings-instructions-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .settings-instructions-title .banner-icon {
+      font-size: 18px;
+    }
+
+    .settings-instructions-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .settings-instructions-list li {
+      position: relative;
+      padding-left: 20px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 6px;
+    }
+
+    .settings-instructions-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .settings-instructions-list li::before {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 10px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .settings-instructions-list li code {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 12px;
+      color: var(--accent);
+      font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    }
+
+    /* 设备信息 */
+    .device-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+
+    .device-info .info-label {
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .device-info .info-value {
+      color: var(--text-secondary);
+      font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+      word-break: break-all;
+      flex: 1;
+    }
+
+    .device-info .copy-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .device-info .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    /* 测试结果区域 */
+    .test-result {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      display: none;
+      line-height: 1.6;
+      word-break: break-all;
+    }
+
+    .test-result.show {
+      display: block;
+      animation: fadeInUp 0.25s ease;
+    }
+
+    .test-result.success {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+
+    .test-result.error {
+      background: rgba(224, 98, 94, 0.1);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+
+    .test-result.info {
+      background: var(--accent-light);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .settings-hero {
+        padding: 20px 16px;
+      }
+
+      .settings-section {
+        padding: 20px;
+      }
+
+      .connection-status-card {
+        flex-wrap: wrap;
+      }
+
+      .current-server-info,
+      .device-info {
+        flex-wrap: wrap;
+      }
+
+      .settings-form-actions {
+        flex-direction: column;
+      }
+
+      .settings-form-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <div class="navbar-brand" onclick="location.href='/'">
+      <span class="logo-icon">📖</span>
+      <span>漫阅</span>
+    </div>
+    <div class="navbar-right">
+      <a href="/" class="navbar-link">首页</a>
+      <a href="/profile" class="navbar-link">我的</a>
+      <a href="/admin" class="navbar-link">管理</a>
+      <a href="/settings" class="navbar-link active">设置</a>
+    </div>
+  </nav>
+
+  <!-- 主内容 -->
+  <div class="container">
+    <!-- 头部 -->
+    <div class="settings-hero">
+      <div class="settings-hero-icon">☁️</div>
+      <div class="settings-hero-info">
+        <h1>云服务设置</h1>
+        <p id="heroSubtitle">配置云服务器以在不同设备间同步漫画数据</p>
+      </div>
+    </div>
+
+    <!-- 说明 -->
+    <div class="settings-instructions">
+      <div class="settings-instructions-title">
+        <span class="banner-icon">💡</span>
+        <span>关于云服务器</span>
+      </div>
+      <ul class="settings-instructions-list">
+        <li>云服务器用于在不同设备之间同步你的阅读进度、收藏和历史记录。</li>
+        <li>配置后，应用会自动将 <code>/api/</code> 接口请求和 <code>/uploads/</code> 图片请求重定向到云端地址。</li>
+        <li>每个设备会生成唯一的设备 ID（Device ID），用于在云端识别你的数据，无需注册账号。</li>
+        <li>地址留空则使用本地服务器；填写完整的服务器地址（例如 <code>https://cloud.example.com</code>）即可连接云端。</li>
+        <li>尾部的斜杠会自动去除，无需手动处理。</li>
+      </ul>
+    </div>
+
+    <!-- 连接状态 -->
+    <div class="settings-section">
+      <div class="settings-section-title">
+        <span class="section-icon">📡</span>
+        <span>连接状态</span>
+      </div>
+
+      <!-- 当前服务器信息 -->
+      <div class="current-server-info">
+        <span class="info-label">当前服务器：</span>
+        <span id="currentServerValue" class="info-value empty">未配置（使用本地服务器）</span>
+      </div>
+
+      <!-- 状态卡片 -->
+      <div id="connectionStatusCard" class="connection-status-card">
+        <div class="connection-status-icon" id="connectionStatusIcon">⚪</div>
+        <div class="connection-status-body">
+          <div class="connection-status-label" id="connectionStatusLabel">未知</div>
+          <div class="connection-status-detail" id="connectionStatusDetail">尚未测试连接</div>
+        </div>
+      </div>
+
+      <!-- 测试结果 -->
+      <div id="testResult" class="test-result"></div>
+    </div>
+
+    <!-- 服务器配置 -->
+    <div class="settings-section">
+      <div class="settings-section-title">
+        <span class="section-icon">⚙️</span>
+        <span>服务器配置</span>
+      </div>
+
+      <form class="settings-form" id="cloudServerForm" onsubmit="event.preventDefault(); saveServer();">
+        <div class="form-group">
+          <label class="form-label" for="cloudServerInput">云服务器地址</label>
+          <input
+            type="text"
+            id="cloudServerInput"
+            class="form-input"
+            placeholder="https://cloud.example.com"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <div class="form-hint">以 http:// 或 https:// 开头，留空则恢复使用本地服务器。</div>
+        </div>
+
+        <div class="settings-form-actions">
+          <button type="submit" class="btn btn-primary" id="saveBtn">
+            <span>💾</span> 保存配置
+          </button>
+          <button type="button" class="btn" id="testBtn" onclick="testConnection()">
+            <span>🔌</span> 测试连接
+          </button>
+          <button type="button" class="btn btn-danger" id="clearBtn" onclick="clearServer()">
+            <span>🗑️</span> 清除配置
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 设备信息 -->
+    <div class="settings-section">
+      <div class="settings-section-title">
+        <span class="section-icon">📱</span>
+        <span>设备信息</span>
+      </div>
+      <div class="device-info">
+        <span class="info-label">设备 ID：</span>
+        <span class="info-value" id="deviceIdValue">—</span>
+        <button type="button" class="copy-btn" onclick="copyDeviceId()">复制</button>
+      </div>
+    </div>
+
+    <!-- Render 自动部署配置 -->
+    <div class="settings-section">
+      <div class="settings-section-title">
+        <span class="section-icon">🚀</span>
+        <span>自动部署配置</span>
+      </div>
+
+      <div class="settings-instructions" style="margin-bottom:20px;">
+        <div class="settings-instructions-title">
+          <span class="banner-icon">📜</span>
+          <span>如何获取 Deploy Hook URL</span>
+        </div>
+        <ul class="settings-instructions-list">
+          <li>登录 Render 控制台，选择你的漫阅服务</li>
+          <li>进入 <code>Settings</code> 页面</li>
+          <li>找到 <code>Deploy Hook</code> 区域，点击 <code>Create Deploy Hook</code></li>
+          <li>命名后复制生成的 URL（格式如 <code>https://api.render.com/deploy/srv-xxx</code>）</li>
+          <li>将 URL 粘贴到下方输入框，保存后管理员登录时会自动触发部署</li>
+        </ul>
+      </div>
+
+      <form class="settings-form" onsubmit="event.preventDefault(); saveDeployConfig();">
+        <div class="form-group">
+          <label class="form-label" for="deployHookInput">Render Deploy Hook URL</label>
+          <input
+            type="text"
+            id="deployHookInput"
+            class="form-input"
+            placeholder="https://api.render.com/deploy/srv-xxxxxxxx"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <div class="form-hint">从 Render 控制台 Settings 页面获取，留空则不触发自动部署。</div>
+        </div>
+
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+          <input
+            type="checkbox"
+            id="autoDeployToggle"
+            style="width:20px;height:20px;cursor:pointer;accent-color:var(--accent);"
+          >
+          <label for="autoDeployToggle" style="cursor:pointer;font-size:14px;color:var(--text-secondary);">
+            管理员登录后自动触发部署
+          </label>
+        </div>
+
+        <div class="settings-form-actions">
+          <button type="submit" class="btn btn-primary">
+            <span>💾</span> 保存部署配置
+          </button>
+          <button type="button" class="btn" onclick="triggerDeployNow()">
+            <span>🚀</span> 立即部署
+          </button>
+          <button type="button" class="btn btn-danger" onclick="clearDeployConfig()">
+            <span>🗑️</span> 清除配置
+          </button>
+        </div>
+      </form>
+
+      <!-- 部署结果 -->
+      <div id="deployResult" class="test-result"></div>
+    </div>
+  </div>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <span class="logo-icon">📖</span>
+      <span>漫阅</span>
+    </div>
+    <p>个人漫画浏览平台 · 管理员上传，访客浏览</p>
+    <div class="footer-stats" id="footerStats"></div>
+  </footer>
+
+  <!-- 云配置脚本（须在使用其全局函数之前加载） -->
+  <script src="/js/cloud-config.js"></script>
+  <script>
+    // ============ 工具函数 ============
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text == null ? '' : String(text);
+      return div.innerHTML;
+    }
+
+    function showToast(message, type) {
+      type = type || 'info';
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + type;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(function() {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.transition = 'all 0.3s';
+        setTimeout(function() { toast.remove(); }, 300);
+      }, 3000);
+    }
+
+    // ============ 状态渲染 ============
+    function renderCurrentServer() {
+      const cloud = getCloudServer();
+      const valueEl = document.getElementById('currentServerValue');
+      const inputEl = document.getElementById('cloudServerInput');
+
+      if (cloud) {
+        valueEl.textContent = cloud;
+        valueEl.classList.remove('empty');
+      } else {
+        valueEl.textContent = '未配置（使用本地服务器）';
+        valueEl.classList.add('empty');
+      }
+
+      // 输入框回显当前值
+      inputEl.value = cloud || '';
+    }
+
+    function setConnectionStatus(state, detail) {
+      const card = document.getElementById('connectionStatusCard');
+      const icon = document.getElementById('connectionStatusIcon');
+      const label = document.getElementById('connectionStatusLabel');
+      const detailEl = document.getElementById('connectionStatusDetail');
+
+      // 清除旧状态类
+      card.classList.remove('connected', 'disconnected', 'testing');
+
+      if (state === 'connected') {
+        card.classList.add('connected');
+        icon.textContent = '✅';
+        label.textContent = '已连接';
+        detailEl.textContent = detail || '云服务器连接正常';
+      } else if (state === 'disconnected') {
+        card.classList.add('disconnected');
+        icon.textContent = '❌';
+        label.textContent = '未连接';
+        detailEl.textContent = detail || '无法连接到云服务器';
+      } else if (state === 'testing') {
+        card.classList.add('testing');
+        icon.textContent = '⏳';
+        label.textContent = '测试中...';
+        detailEl.textContent = detail || '正在尝试连接云服务器';
+      } else {
+        // 未知 / 未配置
+        icon.textContent = '⚪';
+        label.textContent = '未知';
+        detailEl.textContent = detail || '尚未测试连接';
+      }
+    }
+
+    function showTestResult(type, message) {
+      const el = document.getElementById('testResult');
+      el.className = 'test-result show ' + type;
+      el.textContent = message;
+    }
+
+    function hideTestResult() {
+      const el = document.getElementById('testResult');
+      el.className = 'test-result';
+      el.textContent = '';
+    }
+
+    // ============ 保存 / 清除 ============
+    function saveServer() {
+      const inputEl = document.getElementById('cloudServerInput');
+      let url = inputEl.value.trim();
+
+      // 简单校验：非空时必须以 http(s):// 开头
+      if (url && !/^https?:\/\//i.test(url)) {
+        showToast('地址需要以 http:// 或 https:// 开头', 'error');
+        showTestResult('error', '地址格式无效：必须以 http:// 或 https:// 开头。');
+        return;
+      }
+
+      hideTestResult();
+
+      // 留空即清除（恢复本地）
+      if (!url) {
+        setCloudServer('');
+        renderCurrentServer();
+        setConnectionStatus('unknown', '未配置云服务器，将使用本地服务器');
+        showToast('已清除云服务器配置，恢复使用本地服务器', 'info');
+        return;
+      }
+
+      setCloudServer(url);
+      renderCurrentServer();
+      setConnectionStatus('unknown', '配置已保存，点击"测试连接"验证是否可用');
+      showToast('云服务器配置已保存', 'success');
+    }
+
+    function clearServer() {
+      if (!getCloudServer() && !document.getElementById('cloudServerInput').value.trim()) {
+        showToast('当前没有配置需要清除', 'info');
+        return;
+      }
+
+      setCloudServer('');
+      document.getElementById('cloudServerInput').value = '';
+      renderCurrentServer();
+      hideTestResult();
+      setConnectionStatus('unknown', '未配置云服务器，将使用本地服务器');
+      showToast('已清除云服务器配置', 'success');
+    }
+
+    // ============ 测试连接 ============
+    async function testConnection() {
+      const inputEl = document.getElementById('cloudServerInput');
+      let url = inputEl.value.trim();
+
+      // 如果输入框有内容但尚未保存，先用临时地址测试
+      let testUrl;
+      if (url) {
+        if (!/^https?:\/\//i.test(url)) {
+          showTestResult('error', '地址格式无效：必须以 http:// 或 https:// 开头。');
+          showToast('地址格式无效', 'error');
+          return;
+        }
+        testUrl = url.replace(/\/+$/, '');
+      } else {
+        // 使用已保存的或本地
+        testUrl = getCloudServer() || location.origin;
+      }
+
+      const testBtn = document.getElementById('testBtn');
+      testBtn.disabled = true;
+      setConnectionStatus('testing', '正在连接 ' + testUrl + ' ...');
+
+      const startTime = Date.now();
+
+      try {
+        // 尝试访问云端的 /api/comics 端点（与其它页面一致）
+        const target = testUrl + '/api/comics';
+        const res = await fetch(target, {
+          method: 'GET',
+          headers: { 'X-Device-Id': getDeviceId() }
+        });
+
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
+        if (res.ok) {
+          let extra = '';
+          try {
+            const data = await res.json();
+            const count = Array.isArray(data) ? data.length : (data && data.length) || 0;
+            extra = '（云端共有 ' + count + ' 部漫画）';
+          } catch (e) {
+            // 即便无法解析 JSON，只要状态码正常也算连接成功
+          }
+          setConnectionStatus('connected', '连接成功 · 耗时 ' + elapsed + 's');
+          showTestResult('success', '连接成功！服务器 ' + testUrl + ' 响应正常，状态码 ' + res.status + ' ' + extra);
+          showToast('连接成功', 'success');
+        } else {
+          setConnectionStatus('disconnected', '服务器返回状态码 ' + res.status);
+          showTestResult('error', '连接失败：服务器返回状态码 ' + res.status + '（' + res.statusText + '）。请检查地址是否正确。');
+          showToast('连接失败：HTTP ' + res.status, 'error');
+        }
+      } catch (err) {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+        setConnectionStatus('disconnected', '连接出错：' + (err && err.message ? err.message : '未知错误'));
+        showTestResult('error', '连接失败：' + escapeHtml(err && err.message ? err.message : String(err)) + '（耗时 ' + elapsed + 's）。可能原因：地址错误、服务器未启动、或存在跨域/CORS 限制。');
+        showToast('连接失败，请检查地址', 'error');
+      } finally {
+        testBtn.disabled = false;
+      }
+    }
+
+    // ============ 设备信息 ============
+    function renderDeviceId() {
+      document.getElementById('deviceIdValue').textContent = getDeviceId();
+    }
+
+    function copyDeviceId() {
+      const id = getDeviceId();
+      const fallback = function() {
+        const ta = document.createElement('textarea');
+        ta.value = id;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showToast('设备 ID 已复制', 'success'); }
+        catch (e) { showToast('复制失败，请手动选择文本', 'error'); }
+        document.body.removeChild(ta);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(id).then(function() {
+          showToast('设备 ID 已复制', 'success');
+        }).catch(function() {
+          fallback();
+        });
+      } else {
+        fallback();
+      }
+    }
+
+    // ============ 启动 ============
+    renderCurrentServer();
+    renderDeviceId();
+    renderDeployConfig();
+
+    // 初始化连接状态：若已配置则显示待测试，否则显示未配置
+    if (getCloudServer()) {
+      setConnectionStatus('unknown', '配置已保存，点击"测试连接"验证是否可用');
+    } else {
+      setConnectionStatus('unknown', '未配置云服务器，将使用本地服务器');
+    }
+
+    // 回车保存
+    document.getElementById('cloudServerInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveServer();
+      }
+    });
+
+    // ============ 自动部署配置 ============
+
+    function renderDeployConfig() {
+      const hookUrl = getDeployHook();
+      const autoEnabled = isAutoDeployEnabled();
+
+      document.getElementById('deployHookInput').value = hookUrl || '';
+      document.getElementById('autoDeployToggle').checked = autoEnabled;
+    }
+
+    function saveDeployConfig() {
+      const hookUrl = document.getElementById('deployHookInput').value.trim();
+      const autoEnabled = document.getElementById('autoDeployToggle').checked;
+
+      if (hookUrl && !/^https?:\/\/api\.render\.com\/deploy\//i.test(hookUrl)) {
+        showDeployResult('error', 'URL 格式无效，应以 https://api.render.com/deploy/ 开头');
+        showToast('Deploy Hook URL 格式无效', 'error');
+        return;
+      }
+
+      setDeployHook(hookUrl);
+      setAutoDeploy(autoEnabled);
+
+      showDeployResult('success', '部署配置已保存' + (autoEnabled ? '，管理员登录后将自动触发部署' : ''));
+      showToast('部署配置已保存', 'success');
+    }
+
+    async function triggerDeployNow() {
+      const hookUrl = document.getElementById('deployHookInput').value.trim() || getDeployHook();
+
+      if (!hookUrl) {
+        showDeployResult('error', '请先配置 Deploy Hook URL');
+        showToast('请先配置 Deploy Hook URL', 'error');
+        return;
+      }
+
+      // 保存当前输入
+      setDeployHook(hookUrl);
+
+      showDeployResult('info', '正在触发部署...');
+      showToast('正在触发部署...', 'info');
+
+      const result = await triggerDeploy();
+
+      if (result.success) {
+        showDeployResult('success', '✅ ' + result.message + (result.deployId ? ' (Deploy ID: ' + result.deployId + ')' : ''));
+        showToast('部署已触发', 'success');
+      } else {
+        showDeployResult('error', '❌ ' + result.message);
+        showToast('部署失败', 'error');
+      }
+    }
+
+    function clearDeployConfig() {
+      setDeployHook('');
+      setAutoDeploy(false);
+      document.getElementById('deployHookInput').value = '';
+      document.getElementById('autoDeployToggle').checked = false;
+      showDeployResult('info', '已清除部署配置');
+      showToast('部署配置已清除', 'info');
+    }
+
+    function showDeployResult(type, message) {
+      const el = document.getElementById('deployResult');
+      el.className = 'test-result show ' + type;
+      el.textContent = message;
+    }
+
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(function() {});
+    }
+  </script>
+</body>
+</html>
